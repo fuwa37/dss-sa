@@ -15,12 +15,11 @@ def main():
 def search():
     q = request.args.get("query")
     c = request.args.get("count")
-    print(c)
     if c is None:
-        data = tweet.searchtweet(q)
+        data = tweet.analyzesearch(q)
     else:
         c = int(c)
-        data = tweet.searchtweet(q, c)
+        data = tweet.analyzesearch(q, c)
     return jsonify(data)
 
 

@@ -1,7 +1,6 @@
 import nltk
 import fs
 import re
-import textblob.exceptions
 from textblob import TextBlob
 from tweepy.streaming import StreamListener
 from tweepy import Stream
@@ -51,18 +50,7 @@ def blobtweet(tweet):
     cleaned = clean_tweet(tweet)
     blob = TextBlob(cleaned)
 
-    try:
-        if blob.detect_language() != 'en':
-            try:
-                teks = blob.translate(to='en')
-            except textblob.exceptions:
-                print('error')
-        else:
-            teks = blob
-    except textblob.exceptions:
-        print('error')
-
-    return teks
+    return blob
 
 
 def sentiment(pol):
@@ -82,13 +70,15 @@ def searchtweet(q, c=100):
     return tweets
 
 
-def analyzesearch(tweets):
+def analyzesearch(q, c=100):
     data = []
+    api = tweepy.API(auth)
+    search_result = api.search(q=q, count=c, lang='en')
+    tweets = [status._json for status in search_result]
     for i in tweets:
         teks = blobtweet(i['text'])
-        data.append(tweetstruct(teks, teks.sentiment.polarity, i['user']['location'], i['created_at']))
+        data.append(tweetstruct(str(teks), teks.sentiment.polarity, i['user']['location'], i['created_at']))
     return data
-
 
 # This is a basic listener that just prints received tweets to stdout.
 class StdOutListener(StreamListener):
@@ -130,6 +120,3 @@ def stream(q, t=None):
     if t is not None:
         time.sleep(t)
         stream.disconnect()
-
-
-stream('hello', 10)
