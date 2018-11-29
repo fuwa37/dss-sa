@@ -71,14 +71,21 @@ def searchtweet(q, c=100):
 
 
 def analyzesearch(q, c=100):
+    global sesi_t
+    sesi_t = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+    sesi = q + "_" + sesi_t
+    fs.sesi_ref.add({}, sesi)
     data = []
     api = tweepy.API(auth)
-    search_result = api.search(q=q, count=c, lang='en')
+    search_result = [status for status in tweepy.Cursor(api.search, q=q).items(c)]
     tweets = [status._json for status in search_result]
     for i in tweets:
         teks = blobtweet(i['text'])
-        data.append(tweetstruct(str(teks), teks.sentiment.polarity, i['user']['location'], i['created_at']))
-    return data
+        temp = tweetstruct(str(teks), teks.sentiment.polarity, i['user']['location'], i['created_at'])
+        data.append(temp)
+        fs.storetweet(sesi, i["id_str"], temp)
+    return data, sesi
+
 
 # This is a basic listener that just prints received tweets to stdout.
 class StdOutListener(StreamListener):

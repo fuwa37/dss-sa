@@ -1,0 +1,8 @@
+<iframe id="FileFrame" src="about:blank" width="100%"></iframe>
+<script type="text/javascript">
+    var doc = document.getElementById('FileFrame').contentWindow.document;
+    var content = '<!DOCTYPE html><html><body><p id="demo"><\/p><script>var obj = {{data}};console.log(obj);document.getElementById("demo").innerHTML = {{data}};<\/script><\/body><\/html>'
+    doc.open();
+    doc.write(content);
+    doc.close();
+</script>
