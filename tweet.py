@@ -7,6 +7,7 @@ from tweepy import Stream
 from tweepy import OAuthHandler
 import json
 import tweepy
+import time
 
 # Variables that contains the user credentials to access Twitter API
 access_token = "127884553-TqitaQ5yWajIsxoJRXB0zMFCvqsLkVsIUtX0j4EA"
@@ -30,6 +31,7 @@ def tweetstruct(text, pol, loc, t):
     return data
 
 
+
 def clean_tweet(tweet):
     return ' '.join(re.sub("(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)", " ", tweet).split())
 
@@ -46,14 +48,16 @@ def sentiment(pol):
 def searchtweet(q, c=100):
     api = tweepy.API(auth)
     search_result = api.search(q=q, count=c)
+    tweets = [status._json for status in search_result]
 
-    return search_result
+    return tweets
 
 
 # This is a basic listener that just prints received tweets to stdout.
 class StdOutListener(StreamListener):
 
     def on_data(self, data):
+        global teks
         all_data = json.loads(data)
         if 'text' in all_data:
             id_str = all_data["id_str"]
@@ -61,8 +65,19 @@ class StdOutListener(StreamListener):
             created_at = all_data["created_at"]
             user_location = all_data["user"]["location"]
 
-            data = tweetstruct(tweet, TextBlob(clean_tweet(tweet)).sentiment.polarity, user_location, created_at)
-            print(data)
+            cleaned = clean_tweet(tweet)
+            blob = TextBlob(cleaned)
+
+            if blob.detect_language() != 'en':
+                try:
+                    teks = blob.translate(to='en')
+                except:
+                    print('error')
+            else:
+                teks = blob
+
+            data = tweetstruct(str(teks), teks.sentiment.polarity, user_location, created_at)
+            # print(data)
             fs.storetweet(id_str, data)
             return True
         else:
@@ -72,12 +87,16 @@ class StdOutListener(StreamListener):
         print(status)
 
 
-def stream(q):
+def stream(q, t=None):
     l = StdOutListener()
     stream = Stream(auth, l)
 
     # This line filter Twitter Streams to capture data by the keywords: 'python', 'javascript', 'ruby'
     try:
-        stream.filter(track=[q], is_async=True, languages=['en'])
+        stream.filter(track=[q], is_async=True)
     except:
         print("error")
+
+    if t is not None:
+        time.sleep(t)
+        stream.disconnect()
