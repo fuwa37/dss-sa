@@ -11,15 +11,17 @@ def main():
     return "a"
 
 
-@app.route('search')
+@app.route('/search')
 def search():
     q = request.args.get("query")
     c = request.args.get("count")
-    if c == '':
-        tweet.searchtweet(q)
+    print(c)
+    if c is None:
+        data = tweet.searchtweet(q)
     else:
         c = int(c)
-        tweet.searchtweet(q, c)
+        data = tweet.searchtweet(q, c)
+    return jsonify(data)
 
 
 app.run(host='0.0.0.0', port=port)

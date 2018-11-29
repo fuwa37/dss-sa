@@ -1,6 +1,7 @@
 import nltk
 import fs
 import re
+import textblob.exceptions
 from textblob import TextBlob
 from tweepy.streaming import StreamListener
 from tweepy import Stream
@@ -8,6 +9,8 @@ from tweepy import OAuthHandler
 import json
 import tweepy
 import time
+import datetime
+import random
 
 # Variables that contains the user credentials to access Twitter API
 access_token = "127884553-TqitaQ5yWajIsxoJRXB0zMFCvqsLkVsIUtX0j4EA"
@@ -17,7 +20,15 @@ consumer_secret = "2eYxYHmbrxUIbbZNF0sBtlOARlwmG04DfisJEpJeNgmTGLPH0z"
 auth = OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_token, access_token_secret)
 
-def_word = ['hello']
+sesi_t = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+
+
+def createid():
+    strid = ""
+    randid = [random.randint(0, 255), random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)]
+    for j in randid:
+        strid += str(j)
+    return strid
 
 
 def tweetstruct(text, pol, loc, t):
@@ -31,9 +42,27 @@ def tweetstruct(text, pol, loc, t):
     return data
 
 
-
 def clean_tweet(tweet):
     return ' '.join(re.sub("(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)", " ", tweet).split())
+
+
+def blobtweet(tweet):
+    global teks
+    cleaned = clean_tweet(tweet)
+    blob = TextBlob(cleaned)
+
+    try:
+        if blob.detect_language() != 'en':
+            try:
+                teks = blob.translate(to='en')
+            except textblob.exceptions:
+                print('error')
+        else:
+            teks = blob
+    except textblob.exceptions:
+        print('error')
+
+    return teks
 
 
 def sentiment(pol):
@@ -53,11 +82,19 @@ def searchtweet(q, c=100):
     return tweets
 
 
+def analyzesearch(tweets):
+    data = []
+    for i in tweets:
+        teks = blobtweet(i['text'])
+        data.append(tweetstruct(teks, teks.sentiment.polarity, i['user']['location'], i['created_at']))
+    return data
+
+
 # This is a basic listener that just prints received tweets to stdout.
 class StdOutListener(StreamListener):
 
     def on_data(self, data):
-        global teks
+        global sesi_t
         all_data = json.loads(data)
         if 'text' in all_data:
             id_str = all_data["id_str"]
@@ -65,20 +102,11 @@ class StdOutListener(StreamListener):
             created_at = all_data["created_at"]
             user_location = all_data["user"]["location"]
 
-            cleaned = clean_tweet(tweet)
-            blob = TextBlob(cleaned)
-
-            if blob.detect_language() != 'en':
-                try:
-                    teks = blob.translate(to='en')
-                except:
-                    print('error')
-            else:
-                teks = blob
+            teks = blobtweet(tweet)
 
             data = tweetstruct(str(teks), teks.sentiment.polarity, user_location, created_at)
-            # print(data)
-            fs.storetweet(id_str, data)
+
+            fs.lasttweet(fs.storetweet(sesi_t, id_str, data))
             return True
         else:
             return True
@@ -88,10 +116,12 @@ class StdOutListener(StreamListener):
 
 
 def stream(q, t=None):
+    global sesi_t
     l = StdOutListener()
     stream = Stream(auth, l)
+    sesi_t = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+    fs.sesi_ref.add({}, sesi_t)
 
-    # This line filter Twitter Streams to capture data by the keywords: 'python', 'javascript', 'ruby'
     try:
         stream.filter(track=[q], is_async=True)
     except:
@@ -100,3 +130,6 @@ def stream(q, t=None):
     if t is not None:
         time.sleep(t)
         stream.disconnect()
+
+
+stream('hello', 10)
