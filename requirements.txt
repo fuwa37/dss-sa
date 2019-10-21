@@ -21,7 +21,7 @@ itsdangerous==1.1.0
 Jinja2==2.10
 MarkupSafe==1.1.0
 msgpack==0.5.6
-nltk==3.4
+nltk==3.4.5
 oauthlib==2.1.0
 praw==6.0.0
 prawcore==1.0.0
